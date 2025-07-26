@@ -1,32 +1,30 @@
 using HBITSExplorer.Components;
 using HBITSExplorer.Services;
+//using HBITSExplorer.Data; // your services
+using Microsoft.AspNetCore.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Register services
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Register the RateService
 builder.Services.AddScoped<RateService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Middleware pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
-
+app.UseStaticFiles(); // ? Serve CSS/JS
 app.UseAntiforgery();
 
-app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+   .AddInteractiveServerRenderMode();
 
 app.Run();
