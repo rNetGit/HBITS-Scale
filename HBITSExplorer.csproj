@@ -15,6 +15,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Remove="wwwroot\HBITS.db" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\HBITS.db" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.7" /> <!-- ✅ Use version 8.x to match .NET 8 -->
   </ItemGroup>
 
