@@ -1,0 +1,286 @@
+@page "/"
+@using HBITSExplorer.Models
+@using HBITSExplorer.Services
+@inject RateService RateService
+@rendermode InteractiveServer
+
+<PageTitle>HBITS Rate Explorer</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="text-center mb-4">HBITS Scale</h1>
+            
+            <!-- Search Form -->
+            <div class="card mb-4">
+                <div class="card-body">
+                                            <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="jobTitleSelect" class="form-label">Job Title <span class="text-danger">*</span></label>
+                            <select id="jobTitleSelect" class="form-select @(showValidation && string.IsNullOrWhiteSpace(selectedJobTitle) ? "is-invalid" : "")" @bind="selectedJobTitle">
+                                <option value="">Select Job Title</option>
+                                @foreach (var jobTitle in jobTitles)
+                                {
+                                    <option value="@jobTitle">@jobTitle</option>
+                                }
+                            </select>
+                            @if (showValidation && string.IsNullOrWhiteSpace(selectedJobTitle))
+                            {
+                                <div class="invalid-feedback">Please select a Job Title.</div>
+                            }
+                        </div>
+                        <div class="col-md-6">
+                            <label for="skillLevelSelect" class="form-label">Skill Level <span class="text-danger">*</span></label>
+                            <select id="skillLevelSelect" class="form-select @(showValidation && string.IsNullOrWhiteSpace(selectedSkillLevel) ? "is-invalid" : "")" @bind="selectedSkillLevel">
+                                <option value="">Select Skill Level</option>
+                                @foreach (var skillLevel in skillLevels)
+                                {
+                                    <option value="@skillLevel">@skillLevel</option>
+                                }
+                            </select>
+                            @if (showValidation && string.IsNullOrWhiteSpace(selectedSkillLevel))
+                            {
+                                <div class="invalid-feedback">Please select a Skill Level.</div>
+                            }
+                        </div>
+                    </div>
+                                            <div class="row mt-3">
+                        <div class="col-12 d-flex gap-2 flex-wrap">
+                            <button class="btn btn-primary" @onclick="SearchRates" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                }
+                                Search
+                            </button>
+                            <button class="btn btn-secondary" @onclick="ClearSearch" disabled="@isLoading">
+                                Clear
+                            </button>
+ @*                            <button class="btn btn-info" @onclick="ToggleDebugInfo" disabled="@isLoading">
+                                Debug Info
+                            </button>
+                            <button class="btn btn-warning" @onclick="TestDatabase" disabled="@isLoading">
+                                Test DB
+                            </button> *@
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Debug Section -->
+            @if (showDebugInfo)
+            {
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Debug Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Job Titles in DB:</strong> @string.Join(", ", jobTitles.Take(5))</p>
+                        <p><strong>Skill Levels in DB:</strong> @string.Join(", ", skillLevels.Take(5))</p>
+                        <p><strong>Selected Job Title:</strong> '@selectedJobTitle'</p>
+                        <p><strong>Selected Skill Level:</strong> '@selectedSkillLevel'</p>
+                        @if (sampleData.Any())
+                        {
+                            <p><strong>Sample Data (first 5 records):</strong></p>
+                            <ul>
+                                @foreach (var rate in sampleData.Take(5))
+                                {
+                                    <li>@rate.Contractor_Name - @rate.Job_Title - @rate.Skill_Level - $@rate.HourlyBillRate</li>
+                                }
+                            </ul>
+                        }
+                        @if (jobTitleResults.Any())
+                        {
+                            <p><strong>Records for Job Title '@selectedJobTitle':</strong> @jobTitleResults.Count</p>
+                            <ul>
+                                @foreach (var rate in jobTitleResults.Take(3))
+                                {
+                                    <li>@rate.Contractor_Name - @rate.Job_Title - @rate.Skill_Level - $@rate.HourlyBillRate</li>
+                                }
+                            </ul>
+                        }
+                        @if (skillLevelResults.Any())
+                        {
+                            <p><strong>Records for Skill Level '@selectedSkillLevel':</strong> @skillLevelResults.Count</p>
+                            <ul>
+                                @foreach (var rate in skillLevelResults.Take(3))
+                                {
+                                    <li>@rate.Contractor_Name - @rate.Job_Title - @rate.Skill_Level - $@rate.HourlyBillRate</li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Results -->
+            @if (searchResults.Any())
+            {
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Search Results (@searchResults.Count records)</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Contractor Name</th>
+                                        <th>Job Title</th>
+                                        <th>Skill Level</th>
+                                        <th>Hourly Bill Rate</th>
+                                        <th>Effective Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int i = 0; i < searchResults.Count; i++)
+                                    {
+                                        var rate = searchResults[i];
+                                        <tr>
+                                            <td class="fw-bold">@(i + 1)</td>
+                                            <td>@rate.Contractor_Name</td>
+                                            <td>@rate.Job_Title</td>
+                                            <td>@rate.Skill_Level</td>
+                                            <td class="text-end">$@rate.HourlyBillRate.ToString("F2")</td>
+                                            <td>@rate.EffictiveDt</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (hasSearched)
+            {
+                <div class="alert alert-info text-center">
+                    No results found for the selected criteria.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<string> jobTitles = new();
+    private List<string> skillLevels = new();
+    private List<Rate> searchResults = new();
+    private List<Rate> sampleData = new();
+    private List<Rate> jobTitleResults = new();
+    private List<Rate> skillLevelResults = new();
+    private string selectedJobTitle = "";
+    private string selectedSkillLevel = "";
+    private bool isLoading = false;
+    private bool hasSearched = false;
+    private bool showDebugInfo = false;
+    private bool showValidation = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDropdownData();
+    }
+
+    private async Task LoadDropdownData()
+    {
+        try
+        {
+            isLoading = true;
+            jobTitles = await RateService.GetJobTitlesAsync();
+            skillLevels = await RateService.GetSkillLevelsAsync();
+        }
+        catch (Exception ex)
+        {
+            // In a real application, you'd want to log this error
+            Console.WriteLine($"Error loading dropdown data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SearchRates()
+    {
+        // Validate required fields
+        showValidation = true;
+        
+        if (string.IsNullOrWhiteSpace(selectedJobTitle) || string.IsNullOrWhiteSpace(selectedSkillLevel))
+        {
+            return; // Don't proceed with search if validation fails
+        }
+        
+        try
+        {
+            isLoading = true;
+            hasSearched = true;
+            searchResults = await RateService.SearchRatesAsync(selectedJobTitle, selectedSkillLevel);
+        }
+        catch (Exception ex)
+        {
+            // In a real application, you'd want to log this error
+            Console.WriteLine($"Error searching rates: {ex.Message}");
+            searchResults = new List<Rate>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ClearSearch()
+    {
+        selectedJobTitle = "";
+        selectedSkillLevel = "";
+        searchResults.Clear();
+        hasSearched = false;
+        showValidation = false;
+    }
+
+    private async Task ToggleDebugInfo()
+    {
+        showDebugInfo = !showDebugInfo;
+        if (showDebugInfo)
+        {
+            try
+            {
+                if (!sampleData.Any())
+                {
+                    sampleData = await RateService.GetAllRatesAsync();
+                }
+                
+                if (!string.IsNullOrWhiteSpace(selectedJobTitle))
+                {
+                    jobTitleResults = await RateService.GetRatesByJobTitleAsync(selectedJobTitle);
+                }
+                
+                if (!string.IsNullOrWhiteSpace(selectedSkillLevel))
+                {
+                    skillLevelResults = await RateService.GetRatesBySkillLevelAsync(selectedSkillLevel);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading debug data: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task TestDatabase()
+    {
+        try
+        {
+            isLoading = true;
+            var result = await RateService.TestDatabaseConnectionAsync();
+            Console.WriteLine($"Database test result: {result}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Database test error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+} 
